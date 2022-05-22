@@ -7,7 +7,7 @@ import spacy
 
 
 class SentimentDataset(data.Dataset):
-    def __init__(self, file_path, text_field, label_field, is_test=False):
+    def __init__(self, file_path, text_field, label_field, is_train=True):
         data_df = pd.read_csv(file_path)
         print('read data from {path}'.format(path=file_path))
         print('data length:{length}'.format(length=len(data_df)))
@@ -20,17 +20,21 @@ class SentimentDataset(data.Dataset):
             ]
         
         examples = []
-        if not is_test:
+        if is_train:
             for cur_data in data_df.itertuples():
                 examples.append(data.Example.fromlist([None, None, cur_data.Phrase, cur_data.Sentiment], fields))
         else:
+            fields = [
+                ('PhraseId', None),
+                ('SentenceID', None), 
+                ('Phrase', text_field),
+                ('Sentiment', None)
+            ]
             for cur_data in data_df.itertuples():
                 examples.append(data.Example.fromlist([None, None, cur_data.Phrase, None], fields))
         
-        super(SentimentDataset, self).__init__(examples, fields)
+        super(SentimentDataset, self).__init__(examples=examples, fields=fields)
         
-
-
 
 if __name__ == '__main__':
     nlp = spacy.load('en_core_web_sm')
