@@ -10,10 +10,11 @@ sys.path.append(".")
 from dataset.sentiment import SentimentDataset
 
 
-def build_iterator(file_path, batch_size=1, shuffle=True, spcay_load='en_core_web_sm', vector_file_name='glove.6B.50d.txt',is_train=True, device=-1):
-    nlp = spacy.load(spcay_load)
-    tokenize = lambda x: [tok.text for tok in nlp.tokenizer(x)]
-    text_field = data.Field(sequential=True, tokenize=tokenize, lower=True)
+def build_iterator(file_path, text_field=None, batch_size=1, shuffle=True, spcay_load='en_core_web_sm', vector_file_name='glove.6B.50d.txt',is_train=True, device=-1):
+    if text_field is None:
+        nlp = spacy.load(spcay_load)
+        tokenize = lambda x: [tok.text for tok in nlp.tokenizer(x)]
+        text_field = data.Field(sequential=True, tokenize=tokenize, lower=True)
     label_field = data.Field(sequential=False, use_vocab=False)
 
     cur_dataset = SentimentDataset(file_path, text_field, label_field, is_train)
