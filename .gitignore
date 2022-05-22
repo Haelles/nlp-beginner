@@ -2,3 +2,5 @@ data/
 .vector_cache/
 .ipynb_checkpoints/
 __pycache__/
+checkpoints/
+runs/

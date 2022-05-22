@@ -10,12 +10,13 @@ from utils.iterators import build_iterator
 
 
 class TextCNN(nn.Module):
-    def __init__(self, text_field, label_type_num=5, embedded_dim=50, in_channels=1, out_channels=100, kernel_size=[2, 3, 4], stride=1, drop_rate=0.5):
+    def __init__(self, text_field, label_type_num=5, embedded_dim=50, in_channels=1, out_channels=100, kernel_size=[2, 3, 4], stride=1, padding=2, drop_rate=0.5):
         super(TextCNN, self).__init__()
         self.embedded_dim = embedded_dim
         self.word_embedding = nn.Embedding.from_pretrained(text_field.vocab.vectors)
 
-        self.convs = nn.ModuleList([nn.Conv2d(in_channels, out_channels, kernel_size=(k, embedded_dim)) for k in kernel_size])
+        # padding should be a tuple
+        self.convs = nn.ModuleList([nn.Conv2d(in_channels, out_channels, kernel_size=(k, embedded_dim), padding=(padding, 0)) for k in kernel_size])
         self.activate = nn.ReLU()
         self.drop_out = nn.Dropout(drop_rate)
         self.class_head = nn.Linear(out_channels * len(kernel_size), label_type_num)

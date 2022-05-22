@@ -7,7 +7,7 @@ import spacy
 
 
 class SentimentDataset(data.Dataset):
-    def __init__(self, file_path, text_field, label_field, is_train=True):
+    def __init__(self, file_path, text_field, label_field, train_tag='train'):
         data_df = pd.read_csv(file_path)
         print('read data from {path}'.format(path=file_path))
         print('data length:{length}'.format(length=len(data_df)))
@@ -20,7 +20,7 @@ class SentimentDataset(data.Dataset):
             ]
         
         examples = []
-        if is_train:
+        if train_tag == 'train' or train_tag == 'val':
             for cur_data in data_df.itertuples():
                 examples.append(data.Example.fromlist([None, None, cur_data.Phrase, cur_data.Sentiment], fields))
         else:
