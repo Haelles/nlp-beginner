@@ -25,13 +25,13 @@ class SentimentDataset(data.Dataset):
                 examples.append(data.Example.fromlist([None, None, cur_data.Phrase, cur_data.Sentiment], fields))
         else:
             fields = [
-                ('PhraseId', None),
+                ('PhraseId', label_field),
                 ('SentenceID', None), 
                 ('Phrase', text_field),
                 ('Sentiment', None)
             ]
             for cur_data in data_df.itertuples():
-                examples.append(data.Example.fromlist([None, None, cur_data.Phrase, None], fields))
+                examples.append(data.Example.fromlist([cur_data.PhraseId, None, cur_data.Phrase, None], fields))
         
         super(SentimentDataset, self).__init__(examples=examples, fields=fields)
         
