@@ -49,7 +49,7 @@ if __name__ == '__main__':
     nlp = spacy.load('en_core_web_sm')
     tokenize = lambda x: [tok.text for tok in nlp.tokenizer(x)]
     text_field = data.Field(sequential=True, tokenize=tokenize, lower=True)
-    cur_iterator = build_iterator(file_path, text_field=text_field, batch_size=batch_size, device=device, is_train=is_train)
+    cur_iterator = build_iterator(file_path, text_field=text_field, batch_size=batch_size, device=device, train_tag='train')
 
     model = TextCNN(text_field=text_field).to(device)
 

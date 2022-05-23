@@ -1,3 +1,4 @@
+import argparse
 import torch
 import torch.optim as optim
 import torch.nn as nn
@@ -12,19 +13,21 @@ from datetime import datetime
 
 from utils.iterators import build_iterator
 from model.TextCNN import TextCNN
+from model.TextRNN import TextRNN
 
 
-def train():
-    writer = SummaryWriter('runs/' + str(datetime.strftime(datetime.now(),'%Y-%m-%d-%H:%M:%S')))
+def train(args):
+    cur_date_time = datetime.strftime(datetime.now(),'%Y-%m-%d-%H:%M:%S')
+    writer = SummaryWriter('runs/' + str(cur_date_time))
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     
-    train_file_path = 'data/sentiment-analysis-on-movie-reviews/train.csv'
-    val_file_path = 'data/sentiment-analysis-on-movie-reviews/val.csv'
+    train_file_path = args.data + 'train.csv'
+    val_file_path = args.data + 'val.csv'
     train_tag = 'train'    
-    batch_size = 8
-    epoch = 4
+    batch_size = args.batch_size
+    epoch = args.epoch
     
-    lr = 0.001
+    lr = args.lr
 
     nlp = spacy.load('en_core_web_sm')
     tokenize = lambda x: [tok.text for tok in nlp.tokenizer(x)]
@@ -35,7 +38,11 @@ def train():
     train_iterator = build_iterator(train_file_path, text_field=text_field, batch_size=batch_size, device=device, train_tag=train_tag)
     val_iterator = build_iterator(val_file_path, text_field=text_field, batch_size=batch_size, device=device, train_tag='val')
 
-    model = TextCNN(text_field=text_field).to(device)
+    if args.model == 'cnn':
+       model = TextCNN(text_field=text_field).to(device)
+    else:
+        model = TextRNN(text_field=text_field).to(device)
+    
     optimizer = optim.Adam(model.parameters(), lr=lr)
     criterion = nn.CrossEntropyLoss()
 
@@ -46,11 +53,9 @@ def train():
         
         start_time = time.time()
 
-        cnt = 0
         for idx, batch in enumerate(train_iterator):
             optimizer.zero_grad()
             logits = model(batch)
-            cnt += batch.Phrase.shape[1]
             loss = criterion(logits, batch.Sentiment)
             loss.backward()
             optimizer.step()
@@ -61,7 +66,7 @@ def train():
 
             cur_iteration += 1
 
-        print('training epoch {epoch} done. data_num: {cnt}. Time used: {time} seconds'.format(epoch=cur_epoch, cnt=cnt, time=time.time()-start_time))
+        print('training epoch {epoch} done. Time used: {time} seconds'.format(epoch=cur_epoch, time=time.time()-start_time))
         # begin to val
         model.eval()
 
@@ -94,15 +99,29 @@ def train():
         if best_acc < val_acc:
             best_acc = val_acc
             date_time = str(datetime.strftime(datetime.now(),'%Y-%m-%d-%H:%M:%S'))
-            torch.save(model, 'checkpoints/epoch_{epoch}_acc_{acc}_{date}'.format(epoch=cur_epoch, acc=best_acc, date=date_time))
-            print('ckp saved in checkpoints/epoch_{epoch}_acc_{acc}_{date}'.format(epoch=cur_epoch, acc=best_acc, date=date_time))
+            torch.save(model, 'checkpoints/model_{model}_epoch_{epoch}_acc_{acc}_{date}'.format(model=args.model, epoch=cur_epoch, acc=best_acc, date=date_time))
+            print('ckp saved in checkpoints/model_{model}_epoch_{epoch}_acc_{acc}_{date}'.format(model=args.model, epoch=cur_epoch, acc=best_acc, date=date_time))
 
-    writer.close()  # MUST ADD!
+    writer.close()  # MUST ADD THIS!
     
     print('total_iterations {iter}'.format(iter=cur_iteration))
     print('training process done')
 
 
+def generate_args():
+    parser = argparse.ArgumentParser(description='train')
+
+    parser.add_argument('--epoch', type=int, default=4, help='training epochs')
+    parser.add_argument('--lr', type=float, default=0.001, help='learning rate')
+    parser.add_argument('-bs', '--batch_size', type=int, default=8, help='batch size')
+    parser.add_argument('--model', type=str, default='cnn', choices=['cnn', 'rnn'],help='the model used for training')
+
+    parser.add_argument('--data', type=str, default='data/sentiment-analysis-on-movie-reviews/', help='dataset path')
+    
+    args = parser.parse_args()
+    return args
+
 
 if __name__ == '__main__':
-    train()
+    args = generate_args()
+    train(args)
