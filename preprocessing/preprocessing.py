@@ -2,14 +2,14 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 
 
-def generate_csv(data_path, train_path, test_path, test_size=0.2):
+def generate_csv(data_path, train_path, test_path, val_size=0.2):
     train=pd.read_csv(train_path, sep='\t')
     test = pd.read_csv(test_path, sep='\t')
     
     origin_data = train[['PhraseId', 'SentenceId', 'Phrase']]
     origin_label = train[['Sentiment']]
     train_data, val_data, train_label, val_label = train_test_split(
-                                            origin_data, origin_label, test_size=0.2, random_state=0)
+                                            origin_data, origin_label, val_size=0.2, random_state=0)
     
     train_final = pd.merge(train_data, train_label, left_index=True, right_index=True)
     val_final = pd.merge(val_data, val_label, left_index=True, right_index=True)
