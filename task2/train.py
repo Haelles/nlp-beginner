@@ -53,6 +53,9 @@ def train(args):
         
         start_time = time.time()
 
+        train_total_correct = 0
+        train_total = 0
+
         for idx, batch in enumerate(train_iterator):
             optimizer.zero_grad()
             logits = model(batch)
@@ -60,9 +63,17 @@ def train(args):
             loss.backward()
             optimizer.step()
             
+            train_result = torch.max(logits, dim=-1)[1]
+            correct = (train_result == batch.Sentiment).sum()
+            train_total_correct += correct.item()
+            train_total += logits.shape[0]
+
             if cur_iteration % 1000 == 0:
+                train_acc = 100 * (train_total_correct * 1.0 / train_total)
+                train_total_correct = 0
+                train_total = 0
                 writer.add_scalar('training loss', loss.item(), cur_iteration + 1)
-                print('training epoch {epoch} total_iteration {iter} loss:{loss}'.format(epoch=cur_epoch, iter=cur_iteration, loss=loss.item()))
+                print('training epoch {epoch} total_iteration {iter} loss:{loss} acc:{acc}'.format(epoch=cur_epoch, iter=cur_iteration, loss=loss.item(), acc=train_acc))
 
             cur_iteration += 1
 
@@ -111,9 +122,9 @@ def train(args):
 def generate_args():
     parser = argparse.ArgumentParser(description='train')
 
-    parser.add_argument('--epoch', type=int, default=4, help='training epochs')
+    parser.add_argument('--epoch', type=int, default=12, help='training epochs')
     parser.add_argument('--lr', type=float, default=0.001, help='learning rate')
-    parser.add_argument('-bs', '--batch_size', type=int, default=8, help='batch size')
+    parser.add_argument('-bs', '--batch_size', type=int, default=32, help='batch size')
     parser.add_argument('--model', type=str, default='cnn', choices=['cnn', 'rnn'],help='the model used for training')
 
     parser.add_argument('--data', type=str, default='data/sentiment-analysis-on-movie-reviews/', help='dataset path')
