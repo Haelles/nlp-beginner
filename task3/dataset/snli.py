@@ -54,7 +54,7 @@ class SnliDataset(data.Dataset):
 if __name__ == '__main__':
     nlp = spacy.load('en_core_web_sm')
     tokenize = lambda x: [tok.text for tok in nlp.tokenizer(x)]
-    text_field = data.Field(sequential=True, tokenize=tokenize, lower=True)
+    text_field = data.Field(sequential=True, tokenize=tokenize, lower=True, include_lengths=True)
     label_field = data.Field(sequential=False, use_vocab=False)
     # file_path = '../data/snli_1.0/snli_1.0_test.jsonl'
     # test_dataset = SnliDataset(file_path, text_field, label_field)
