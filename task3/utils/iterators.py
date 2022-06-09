@@ -25,6 +25,8 @@ def build_iterator(file_path, batch_size=1, device=-1, is_train=True, text_field
     vectors.unk_init = nn.init.normal_
 
     text_field.build_vocab(cur_dataset, vectors=vectors)
+    # import pdb
+    # pdb.set_trace()
     if is_train:
         cur_iterator = BucketIterator(dataset=cur_dataset, batch_size=batch_size, device=device, sort_key=lambda x: len(x.premise) + len(x.hypothesis), shuffle=True, sort_within_batch=False, repeat=False)
     else:
@@ -46,5 +48,6 @@ if __name__ == '__main__':
     # 注意下面一列是一个句子！！要取[:, 0]
     # batch.hypothesis[0].shape torch.Size([16, 32]) torch.Size([20, 32])
     # p batch.premise[0].shape torch.Size([28, 32]) torch.Size([34, 32])
+    # p batch.premise[1].shape torch.Size([32])
     batch = next(iter(cur_iterator))
     
