@@ -120,10 +120,10 @@ def train(args):
                 # prepare val data
                 val_premise, val_premise_length = batch.premise
                 val_premise = val_premise.transpose(0, 1).contiguous()
-                val_premise_length = val_premise_length.to('cpu').int()
+                val_premise_length = val_premise_length.to('cpu').int()  # 文档要求用CPU int64 tensor
                 val_hypothesis, val_hypothesis_length  = batch.hypothesis
                 val_hypothesis = val_hypothesis.transpose(0, 1).contiguous()  # should be [b, l]
-                val_hypothesis_length = val_hypothesis_length.to('cpu').int()
+                val_hypothesis_length = val_hypothesis_length.to('cpu').int()  # 文档要求用CPU int64 tensor
                 val_label = batch.label  # [batch] e.g. torch.Size([32])
 
                 val_logits, val_prediction = model(val_premise, val_premise_length, val_hypothesis, val_hypothesis_length)
