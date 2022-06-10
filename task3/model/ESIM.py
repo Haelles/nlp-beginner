@@ -29,7 +29,7 @@ class ESIM(nn.Module):
         else:
             self.dropout_rate = 0.0
 
-        self.encoder_lstm = BiLSTM()
+        self.encoder_lstm = BiLSTM(input_size=embedded_dim, hidden_size=hidden_size)
         
         self.attn = Attn()
         # TODO 有没有必要在LSTM输出的2*hidden_size处进行融合呢
@@ -38,7 +38,7 @@ class ESIM(nn.Module):
             nn.ReLU()
         )
 
-        self.composition = BiLSTM()
+        self.composition = BiLSTM(input_size=hidden_size, hidden_size=hidden_size)
 
         self.classification = nn.Sequential(
             nn.Dropout(p=dropout_rate),

@@ -33,17 +33,20 @@ def train(args):
     lr = args.lr
     batch_size = args.batch_size
     gradient_clip = args.gradient_clip
+    embedded_dim = args.embed
     hidden_size = args.hidden
     patience = args.patience
+
+    vector_file_name = args.vector
 
     nlp = spacy.load('en_core_web_sm')
     tokenize = lambda x: [tok.text for tok in nlp.tokenizer(x)]
     text_field = data.Field(sequential=True, tokenize=tokenize, lower=True, include_lengths=True)
 
-    train_iterator = build_iterator(train_file_path, text_field=text_field, batch_size=batch_size, device=device, is_train=True)
-    val_iterator = build_iterator(val_file_path, text_field=text_field, batch_size=batch_size, device=device, is_train=False)
+    train_iterator = build_iterator(train_file_path, text_field=text_field, batch_size=batch_size, device=device, is_train=True, vector_file_name=vector_file_name)
+    val_iterator = build_iterator(val_file_path, text_field=text_field, batch_size=batch_size, device=device, is_train=False, vector_file_name=vector_file_name)
 
-    model = ESIM(text_field, embedded_dim=300, hidden_size=hidden_size).to(device)
+    model = ESIM(text_field, embedded_dim=embedded_dim, hidden_size=hidden_size).to(device)
     
     optimizer = optim.Adam(model.parameters(), lr=lr)
     # TODO 试试效果怎样
@@ -66,9 +69,11 @@ def train(args):
         for idx, batch in enumerate(train_iterator):
             # prepare data
             premise, premise_length = batch.premise
+            premise_length = premise_length.to('cpu').int()
             premise = premise.transpose(0, 1).contiguous()
             hypothesis, hypothesis_length  = batch.hypothesis
             hypothesis = hypothesis.transpose(0, 1).contiguous()  # should be [b, l]
+            hypothesis_length = hypothesis_length.to('cpu').int()
             label = batch.label  # [batch] e.g. torch.Size([32])
 
             optimizer.zero_grad()
@@ -115,8 +120,10 @@ def train(args):
                 # prepare val data
                 val_premise, val_premise_length = batch.premise
                 val_premise = val_premise.transpose(0, 1).contiguous()
+                val_premise_length = val_premise_length.to('cpu').int()
                 val_hypothesis, val_hypothesis_length  = batch.hypothesis
                 val_hypothesis = val_hypothesis.transpose(0, 1).contiguous()  # should be [b, l]
+                val_hypothesis_length = val_hypothesis_length.to('cpu').int()
                 val_label = batch.label  # [batch] e.g. torch.Size([32])
 
                 val_logits, val_prediction = model(val_premise, val_premise_length, val_hypothesis, val_hypothesis_length)
@@ -165,10 +172,12 @@ def generate_args():
     parser.add_argument('--lr', type=float, default=4e-4, help='learning rate')
     parser.add_argument('-bs', '--batch_size', type=int, default=32, help='batch size')
     parser.add_argument('--gradient_clip', type=float, default=10.0, help='max norm for gradient clipping')
+    parser.add_argument('--embed', type=int, default=300, help='input size')
     parser.add_argument('--hidden', type=int, default=300, help='hidden size')
     parser.add_argument('--patience', type=int, default=300, help='patience for early stopping')
 
     parser.add_argument('--data', type=str, default='../data/snli_1.0/', help='dataset path')
+    parser.add_argument('--vector', type=str, default='glove.840B.300d.txt', help='vector file name')
     
     args = parser.parse_args()
     return args
