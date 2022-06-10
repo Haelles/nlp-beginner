@@ -7,32 +7,47 @@ import spacy
 import sys
 sys.path.append(".")
 from utils.iterators import build_iterator
-from utils.utils import generate_mask
+from utils.utils import generate_mask, masked_max_pooling
 from layers import RNN_Dropout, BiLSTM, Attn
 
 
 class ESIM(nn.Module):
-    def __init__(self, text_field, label_type_num=5, embedded_dim=300, in_channels=1, out_channels=100, kernel_size=[2, 3, 4], stride=1, padding=2, dropout_rate=0.5):
+    def __init__(self, text_field, num_class=3, embedded_dim=300, hidden_size=300, dropout_rate=0.5):
         super(ESIM, self).__init__()
         self.embedded_dim = embedded_dim
+        self.num_class = num_class
+        self.hidden_size = hidden_size
         # TODO  待比较更新和不更新embedding的性能区别
         self.word_embedding = nn.Embedding.from_pretrained(text_field.vocab.vectors, padding_idx=1, freeze=False)
         # pytorch nn.Embedding文档提供了如下update padding vector的方法
         with torch.no_grad():
             self.word_embedding.weight[1, :] = torch.zeros(embedded_dim)
 
-        if dropout_rate != 0:
+        if dropout_rate != 0.0:
             self.dropout_rate = dropout_rate
             self.dropout = RNN_Dropout(dropout_rate)
+        else:
+            self.dropout_rate = 0.0
 
         self.encoder_lstm = BiLSTM()
+        
         self.attn = Attn()
+        # TODO 有没有必要在LSTM输出的2*hidden_size处进行融合呢
+        self.mapping = nn.Sequential(
+            nn.Linear(2*4*hidden_size, hidden_size),
+            nn.ReLU()
+        )
 
-        # padding should be a tuple
-        self.convs = nn.ModuleList([nn.Conv2d(in_channels, out_channels, kernel_size=(k, embedded_dim), padding=(padding, 0)) for k in kernel_size])
-        self.activate = nn.ReLU()
-        self.class_head = nn.Linear(out_channels * len(kernel_size), label_type_num)
-    
+        self.composition = BiLSTM()
+
+        self.classification = nn.Sequential(
+            nn.Dropout(p=dropout_rate),
+            nn.Linear(8*hidden_size, hidden_size),
+            nn.Tanh(),
+            nn.Dropout(),
+            nn.Linear(hidden_size, num_class)
+        )
+
 
     def forward(self, premise_sequence, premise_length, hypothesis_sequence, hypothesis_length):
         # premise, hypothesis [b, l]
@@ -48,23 +63,50 @@ class ESIM(nn.Module):
             premise = self.dropout(premise)
             hypothesis = self.dropout(hypothesis)
         
-        encoded_premise = self.encoder_lstm(premise, premise_length)  # should be [b, l, d]
+        encoded_premise = self.encoder_lstm(premise, premise_length)  # should be [b, l, 2*hidden_size]
         encoded_hypothesis = self.encoder_lstm(hypothesis, hypothesis_length)
 
-        # attn:
+        # attn: output should be [b, l, 2*hidden_size]
+        # 实际上分别是[b, l1/l2, 2*hidden_size]
         attn_premise, attn_hypothesis = self.attn(encoded_premise, premise_mask, encoded_hypothesis, hypothesis_mask)
 
-        feature_vectors = []
-        for module in self.convs:
-            out_vectors = self.activate(module(data_vectors))  # out should be [batch, out_channels, length-kernel+1, 1]
-            out_vectors = max_pool1d(out_vectors.squeeze(3), kernel_size=out_vectors.shape[2])  # out should be [batch, out_channels, 1]
-            feature_vectors.append(out_vectors.squeeze(2))  # should be [batch, out_channels]
+        # enhancement of local inference information
+        # should be [b, l, 2*hidden_size*4]
+        enhanced_premise = torch.cat([encoded_premise, attn_premise, encoded_premise - attn_premise, encoded_premise * attn_premise], dim=-1)
+        enhanced_hypothesis = torch.cat([encoded_hypothesis, attn_hypothesis, encoded_hypothesis - attn_hypothesis, encoded_hypothesis * attn_hypothesis], dim=-1)
 
-        cat_vectors = torch.cat(feature_vectors, 1)  # should be [batch, out_channels * len(kernel_size)]
-        cat_vectors = self.drop_out(cat_vectors)
-        logits = self.class_head(cat_vectors)  # should be  [batch, label_type_num]
+        mapped_premise = self.mapping(enhanced_premise)  # should be [b, l, hidden_size]
+        mapped_hypothesis = self.mapping(enhanced_hypothesis)
 
-        return logits
+        if self.dropout_rate != 0:
+            mapped_premise = self.dropout(mapped_premise)
+            mapped_hypothesis = self.dropout(mapped_hypothesis)
+
+        v_a = self.composition(mapped_premise, premise_length)  # should be [b, l, 2*hidden_size]
+        v_b = self.composition(mapped_hypothesis, hypothesis_length)
+
+        # avg_pooling, max_pooling
+        # v_a_ave/v_a_max etc. should be [b, 2*hidden_size]
+        # [b, 2*hidden_size] / [b, 1]
+        # v_a_ave = v_a.sum(dim=1) / premise_length.unsqueeze(1)  # TODO 这里用非浮点数的premise_length tensor会影响结果吗
+        # v_b_ave = v_b.sum(dim=1) / hypothesis_length.unsqueeze(1)
+        
+        # 使用以防万一的写法，即使padding不为0也可获得准确ave结果
+        v_a_ave = torch.sum(v_a * (premise_mask.unsqueeze(1).transpose(2, 1)), dim=1) / torch.sum(premise_mask, dim=1, keepdim=True)
+        v_b_ave = torch.sum(v_b * (hypothesis_mask.unsqueeze(1).transpose(2, 1)), dim=1) / torch.sum(hypothesis_mask, dim=1, keepdim=True)
+
+        v_a_max, _ = masked_max_pooling(v_a, premise_mask, -1e7).max(dim=1)  # should be [b, 2*hidden_size]
+        v_b_max, _ = masked_max_pooling(v_b, hypothesis_mask, -1e7).max(dim=1)
+
+        final_v = torch.cat([v_a_ave, v_a_max, v_b_ave, v_b_max], dim=-1)  # should be [b, 8*hidden_size]
+
+        # classification
+        logits = self.classification(final_v)  # should be [b, num_class]
+
+        # TODO 存疑
+        prediction = nn.functional.softmax(logits, dim=1)
+
+        return logits, prediction
 
 
 if __name__ == '__main__':
@@ -83,6 +125,14 @@ if __name__ == '__main__':
     model = ESIM(text_field=text_field).to(device)
 
     batch = next(iter(cur_iterator))
-    logits = model(batch)
+    premise, premise_length = batch.premise
+    premise = premise.transpose(0, 1).contiguous()
+    hypothesis, hypothesis_length  = batch.hypothesis
+    hypothesis = hypothesis.transpose(0, 1).contiguous()  # should be [b, l]
+    
+    label = batch.label  # [batch] e.g. torch.Size([32])
+    # import pdb
+    # pdb.set_trace()
+    logits, prediction = model(premise, premise_length, hypothesis, hypothesis_length)
     
     print('logits:{logits} done'.format(logits=logits.shape))

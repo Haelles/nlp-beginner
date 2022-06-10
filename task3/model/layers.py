@@ -19,19 +19,22 @@ class RNN_Dropout(nn.Module):
 
 
 class BiLSTM(nn.Module):
-    def __init__(self, embedded_dim=300, hidden_size=300, num_layers=1, bias=True, bidirectional=True, dropout_rate=0):
+    def __init__(self, input_size=300, hidden_size=300, num_layers=1, bias=True, bidirectional=True, dropout_rate=0):
         super(BiLSTM, self).__init__()
 
-        self.embedded_dim = embedded_dim
+        self.input_size = input_size
         self.hidden_size = hidden_size
         self.num_layers = num_layers
         self.bias = bias
         self.bidirectional = bidirectional
         self.dropout_rate = dropout_rate
 
-        self.lstm = nn.LSTM(input_size=embedded_dim, hidden_size=hidden_size, num_layers=num_layers, bias=bias, batch_first=True, dropout=dropout_rate, bidirectional=bidirectional)
+        self.lstm = nn.LSTM(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers, bias=bias, batch_first=True, dropout=dropout_rate, bidirectional=bidirectional)
 
     def forward(self, data_vector, data_length):
+        # data_vector [b, l, d]    
+        # data_length [b, l]
+
         # pytorch1.1后提供enforce_sorted参数，不再需要手动排序
         # ordered_lens, index =  data_length.sort(descending=True)
         # ordered_data = data_vector[index]
@@ -59,8 +62,8 @@ class Attn(nn.Module):
         mask_attn_premise = masked_softmax(attn_matrix, hypothesis_mask)  # 得到mask+softmax后的注意力矩阵
         mask_attn_hypothesis = masked_softmax(attn_matrix.transpose(1, 2).contiguous(), premise_mask)
 
-        weighted_premise = weighted_sum(mask_attn_premise, encoded_hypothesis, premise_mask)
-        weighted_hypothesis = weighted_sum(mask_attn_hypothesis, encoded_premise, hypothesis_mask)
+        weighted_premise = weighted_sum(mask_attn_premise, encoded_hypothesis, premise_mask)  # [b, l1, d]
+        weighted_hypothesis = weighted_sum(mask_attn_hypothesis, encoded_premise, hypothesis_mask)  # [b, l2, d]
 
         return weighted_premise, weighted_hypothesis
 
