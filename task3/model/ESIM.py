@@ -8,7 +8,7 @@ import sys
 sys.path.append(".")
 from utils.iterators import build_iterator
 from utils.utils import generate_mask, masked_max_pooling
-from layers import RNN_Dropout, BiLSTM, Attn
+from .layers import RNN_Dropout, BiLSTM, Attn
 
 
 class ESIM(nn.Module):
@@ -120,6 +120,7 @@ if __name__ == '__main__':
     nlp = spacy.load('en_core_web_sm')
     tokenize = lambda x: [tok.text for tok in nlp.tokenizer(x)]
     text_field = data.Field(sequential=True, tokenize=tokenize, lower=True, include_lengths=True)
+    # print(hasattr(text_field, 'vocab'))
     cur_iterator = build_iterator(file_path, text_field=text_field, batch_size=batch_size, device=device, is_train=is_train)
 
     model = ESIM(text_field=text_field).to(device)

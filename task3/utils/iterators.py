@@ -24,9 +24,11 @@ def build_iterator(file_path, batch_size=1, device=-1, is_train=True, text_field
     # vectors.unk_init = nn.init.xavier_uniform_  # 原文中说用的Gaussian samples
     vectors.unk_init = nn.init.normal_
 
-    text_field.build_vocab(cur_dataset, vectors=vectors)
-    # import pdb
-    # pdb.set_trace()
+    if not hasattr(text_field, 'vocab'):
+        print("build vocab")
+        text_field.build_vocab(cur_dataset, vectors=vectors)
+    else:
+        print('不进行build_vocab')
     if is_train:
         cur_iterator = BucketIterator(dataset=cur_dataset, batch_size=batch_size, device=device, sort_key=lambda x: len(x.premise) + len(x.hypothesis), shuffle=True, sort_within_batch=False, repeat=False)
     else:
