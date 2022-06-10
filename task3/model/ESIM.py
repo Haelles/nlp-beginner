@@ -8,7 +8,7 @@ import sys
 sys.path.append(".")
 from utils.iterators import build_iterator
 from utils.utils import generate_mask
-from layers import RNN_Dropout, BiLSTM
+from layers import RNN_Dropout, BiLSTM, Attn
 
 
 class ESIM(nn.Module):
@@ -26,6 +26,7 @@ class ESIM(nn.Module):
             self.dropout = RNN_Dropout(dropout_rate)
 
         self.encoder_lstm = BiLSTM()
+        self.attn = Attn()
 
         # padding should be a tuple
         self.convs = nn.ModuleList([nn.Conv2d(in_channels, out_channels, kernel_size=(k, embedded_dim), padding=(padding, 0)) for k in kernel_size])
@@ -51,7 +52,7 @@ class ESIM(nn.Module):
         encoded_hypothesis = self.encoder_lstm(hypothesis, hypothesis_length)
 
         # attn:
-
+        attn_premise, attn_hypothesis = self.attn(encoded_premise, premise_mask, encoded_hypothesis, hypothesis_mask)
 
         feature_vectors = []
         for module in self.convs:

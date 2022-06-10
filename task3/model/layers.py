@@ -1,6 +1,10 @@
 import torch
 import torch.nn as nn
 
+import sys
+sys.path.append(".")
+from utils.utils import masked_softmax, weighted_sum
+
 
 class RNN_Dropout(nn.Module):
     def __init__(self, dropout_rate=0.5):
@@ -43,6 +47,22 @@ class BiLSTM(nn.Module):
         unpacked_output, _ = nn.utils.rnn.pad_packed_sequence(packed_output, batch_first=True, total_length=data_vector.shape[1])
 
         return  unpacked_output  # should be [b, n, 2*hidden_size]
+
+
+class Attn(nn.Module):
+    def __init__(self):
+        super(Attn, self).__init__()
+
+    def forward(self, encoded_premise, premise_mask, encoded_hypothesis, hypothesis_mask):
+        attn_matrix = encoded_premise.bmm(encoded_hypothesis.transpose(1, 2).contiguous())  # TODO 是否需要加contiguous()
+
+        mask_attn_premise = masked_softmax(attn_matrix, hypothesis_mask)  # 得到mask+softmax后的注意力矩阵
+        mask_attn_hypothesis = masked_softmax(attn_matrix.transpose(1, 2).contiguous(), premise_mask)
+
+        weighted_premise = weighted_sum(mask_attn_premise, encoded_hypothesis, premise_mask)
+        weighted_hypothesis = weighted_sum(mask_attn_hypothesis, encoded_premise, hypothesis_mask)
+
+        return weighted_premise, weighted_hypothesis
 
 
 if __name__ == '__main__':
