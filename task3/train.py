@@ -155,10 +155,10 @@ def train(args):
         else:
             best_acc = val_acc
             patience_counter = 0  # 清零
-            if not os.path.exists(os.path.join('checkpoints/ESIM/', exp_name)):
-                os.makedirs(os.path.join('checkpoints/ESIM/', exp_name))
-            torch.save(model, 'checkpoints/ESIM/{exp_name}/epoch_{epoch}_acc_{acc}'.format(exp_name=exp_name, epoch=cur_epoch + 1, acc=best_acc))
-            print('ckp saved in checkpoints/ESIM/{exp_name}/epoch_{epoch}_acc_{acc}'.format(exp_name=exp_name, epoch=cur_epoch + 1, acc=best_acc))
+        if not os.path.exists(os.path.join('checkpoints/ESIM/', exp_name)):
+            os.makedirs(os.path.join('checkpoints/ESIM/', exp_name))
+        torch.save(model, 'checkpoints/ESIM/{exp_name}/epoch_{epoch}_acc_{acc}'.format(exp_name=exp_name, epoch=cur_epoch + 1, acc=best_acc))
+        print('ckp saved in checkpoints/ESIM/{exp_name}/epoch_{epoch}_acc_{acc}'.format(exp_name=exp_name, epoch=cur_epoch + 1, acc=best_acc))
         if patience_counter >= patience:
             print('现结束了第{epoch}次训练和验证 连续{patience}次性能下降 训练停止'.format(epoch=cur_epoch + 1, patience=patience))
             break
