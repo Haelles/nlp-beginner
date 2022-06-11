@@ -45,7 +45,7 @@ def test(args):
 
 
 def generate_args():
-    parser = argparse.ArgumentParser(description='train')
+    parser = argparse.ArgumentParser(description='task2 test')
 
     parser.add_argument('--load_from', type=str, default='checkpoints/model_rnn_epoch_3_acc_65.09996155324875_2022-05-23-14:55:42', help='checkpoint path')
     parser.add_argument('--result', type=str, default='results/', help='path where result stored')

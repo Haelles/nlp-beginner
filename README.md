@@ -12,6 +12,8 @@ torchvision 0.6.0
 
 spacy 3.3.0
 
+jsonlines
+
 
 ### 备注
 在https://featurize.cn/ 服务器租借平台上测试，使用CUDA 11.2 + torch 1.10 + torchvision 0.11 + torchtext 0.6.0 + spacy 3.3.1也可以跑通

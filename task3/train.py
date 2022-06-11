@@ -174,7 +174,7 @@ def generate_args():
     parser.add_argument('--gradient_clip', type=float, default=10.0, help='max norm for gradient clipping')
     parser.add_argument('--embed', type=int, default=300, help='input size')
     parser.add_argument('--hidden', type=int, default=300, help='hidden size')
-    parser.add_argument('--patience', type=int, default=300, help='patience for early stopping')
+    parser.add_argument('--patience', type=int, default=5, help='patience for early stopping')
 
     parser.add_argument('--data', type=str, default='../data/snli_1.0/', help='dataset path')
     parser.add_argument('--vector', type=str, default='glove.840B.300d.txt', help='vector file name')
