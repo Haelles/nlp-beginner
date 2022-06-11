@@ -36,7 +36,7 @@ def test(args):
     test_iterator = build_iterator(test_file_path, text_field=text_field, batch_size=batch_size, device=device, is_train=False, vector_file_name=vector_file_name)
 
     model = torch.load(load_from).to(device)
-
+    criterion = nn.CrossEntropyLoss()
     # begin to test
     model.eval()
 
@@ -49,13 +49,13 @@ def test(args):
     with torch.no_grad():
         for idx, test_batch in enumerate(test_iterator):
             # prepare test data
-            test_premise, test_premise_length = batch.premise
+            test_premise, test_premise_length = test_batch.premise
             test_premise = test_premise.transpose(0, 1).contiguous()
             test_premise_length = test_premise_length.to('cpu').int()  # 文档要求用CPU int64 tensor
-            test_hypothesis, test_hypothesis_length  = batch.hypothesis
+            test_hypothesis, test_hypothesis_length  = test_batch.hypothesis
             test_hypothesis = test_hypothesis.transpose(0, 1).contiguous()  # should be [b, l]
             test_hypothesis_length = test_hypothesis_length.to('cpu').int()  # 文档要求用CPU int64 tensor
-            test_label = batch.label  # [batch] e.g. torch.Size([32])
+            test_label = test_batch.label  # [batch] e.g. torch.Size([32])
 
             test_logits, test_prediction = model(test_premise, test_premise_length, test_hypothesis, test_hypothesis_length)
             loss = criterion(test_logits, test_label)

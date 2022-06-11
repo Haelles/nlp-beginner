@@ -51,7 +51,8 @@ def train(args):
     
     optimizer = optim.Adam(model.parameters(), lr=lr)
     # TODO 试试效果怎样
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="max", factor=0.5, patience=0)
+    # val过拟合
+    # scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="max", factor=0.5, patience=0)
     criterion = nn.CrossEntropyLoss()
 
     cur_iteration = 0
@@ -145,8 +146,8 @@ def train(args):
 
         print('val epoch {epoch} done. Val time used: {time} mins'.format(epoch=cur_epoch + 1, time=(time.time()-val_start_time) / 60.0))
         
-        # update lr
-        scheduler.step(val_acc)
+        # # update lr
+        # scheduler.step(val_acc)
 
         # early stopping和存储最优ckp
         if val_acc < best_acc:
