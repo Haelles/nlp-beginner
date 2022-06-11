@@ -22,6 +22,7 @@ def test(args):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     
     # data path
+    train_file_path = args.data + 'snli_1.0_train.jsonl'
     test_file_path = args.data + 'snli_1.0_test.jsonl'
     
     # load parameter
@@ -32,7 +33,8 @@ def test(args):
     nlp = spacy.load('en_core_web_sm')
     tokenize = lambda x: [tok.text for tok in nlp.tokenizer(x)]
     text_field = data.Field(sequential=True, tokenize=tokenize, lower=True, include_lengths=True)
-
+    # 无论是验证集还是测试集，都不应该build_vocab！因为这些数据都是不可见的，没出现在训练集中的单词都应该是unk
+    train_iterator = build_iterator(train_file_path, text_field=text_field, batch_size=batch_size, device=device, is_train=True, vector_file_name=vector_file_name)
     test_iterator = build_iterator(test_file_path, text_field=text_field, batch_size=batch_size, device=device, is_train=False, vector_file_name=vector_file_name)
 
     model = torch.load(load_from).to(device)
