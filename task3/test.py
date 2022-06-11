@@ -66,7 +66,7 @@ def test(args):
         
         test_loss_avg = test_total_loss / test_step
         test_acc = 100 * (test_total_correct * 1.0 / test_total_data)
-        
+        print('test_total_correct{correct} test_total_data{data}'.format(correct=test_total_correct, data=test_total_data))
         print('avg_loss: {loss} acc: {acc}%'.format(loss=test_loss_avg, acc=test_acc))
 
 

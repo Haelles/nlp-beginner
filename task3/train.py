@@ -120,13 +120,13 @@ def train(args):
         with torch.no_grad():
             for idx, val_batch in enumerate(val_iterator):
                 # prepare val data
-                val_premise, val_premise_length = batch.premise
+                val_premise, val_premise_length = val_batch.premise
                 val_premise = val_premise.transpose(0, 1).contiguous()
                 val_premise_length = val_premise_length.to('cpu').int()  # 文档要求用CPU int64 tensor
-                val_hypothesis, val_hypothesis_length  = batch.hypothesis
+                val_hypothesis, val_hypothesis_length  = val_batch.hypothesis
                 val_hypothesis = val_hypothesis.transpose(0, 1).contiguous()  # should be [b, l]
                 val_hypothesis_length = val_hypothesis_length.to('cpu').int()  # 文档要求用CPU int64 tensor
-                val_label = batch.label  # [batch] e.g. torch.Size([32])
+                val_label = val_batch.label  # [batch] e.g. torch.Size([32])
 
                 val_logits, val_prediction = model(val_premise, val_premise_length, val_hypothesis, val_hypothesis_length)
                 loss = criterion(val_logits, val_label)
@@ -139,7 +139,7 @@ def train(args):
             val_loss_avg = val_total_loss / val_step
             print('iters step cnt:{step} math.ceil:{ceil}'.format(step=val_step, ceil=math.ceil(val_total_data / batch_size)))
             val_acc = 100 * (val_total_correct * 1.0 / val_total_data)
-            
+            print('val_total_correct{correct} val_total_data{data}'.format(correct=val_total_correct, data=val_total_data))
             print('Val {epoch} avg_loss: {loss} acc: {acc}%'.format(epoch=cur_epoch + 1, loss=val_loss_avg, acc=val_acc))
             writer.add_scalar('val loss per epoch', val_loss_avg, cur_epoch + 1)
             writer.add_scalar('val acc per epoch', val_acc, cur_epoch + 1)

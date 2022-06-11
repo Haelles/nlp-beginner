@@ -20,7 +20,7 @@ def masked_softmax(attn_matrix, mask):
 
     softmax_result = nn.functional.softmax(reshape_matrix * reshape_mask, dim=-1)  # should be [b*l1, l2]
     masked_softmax_result = softmax_result * reshape_mask  # should be [b*l1, l2]
-    div_add = 1e-10  # TODO 需要更小吗
+    div_add = 1e-13  # TODO 1e-10 -> 1e-13
     final_softmax_result =  masked_softmax_result / (masked_softmax_result.sum(dim=-1, keepdim=True) + div_add)
 
     return final_softmax_result.view(attn_matrix.shape)
