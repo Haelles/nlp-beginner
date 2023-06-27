@@ -1,9 +1,10 @@
 # nlp-beginner
-22级新手任务
+* Researched and utilized preprocessing techniques and word embedding methods, including Bag-of-Words, N-gram, GloVe, Word2Vec, etc.
+* Implemented models such as CNN, RNN, LSTM for tasks like sentiment classification, text matching, etc.
 
 
 ## Environment
-### 版本
+### Version
 torch 1.5.1
 
 torchtext 0.6.0
